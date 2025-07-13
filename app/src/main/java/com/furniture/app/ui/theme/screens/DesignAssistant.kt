@@ -418,10 +418,18 @@ fun DesignAssistantScreen(supabse: SupabaseClient) {
         //supabaseActivity.imageUploadByPhotoPicker(photoUri!!,context)
         galleryClicked=false
     }
+    /*
     if(furnitureRecommendScreen){
-        DesignPreviewScreen(json = llmResponse)
+        DesignPreviewScreen(
+            json = llmResponse,
+            imgUrl = imageurl,
+            supabase = supabse,
+            navcontroller = navController
+        )
         furnitureRecommendScreen=false
     }
+
+     */
 }
 
 @Preview(showBackground = true)

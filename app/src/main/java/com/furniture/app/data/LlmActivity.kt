@@ -1,6 +1,9 @@
 package com.furniture.app.data
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.furniture.app.database.ApiResponse
 import com.furniture.app.database.ChatRequest
 import com.furniture.app.database.Furniture
@@ -19,6 +22,7 @@ import kotlinx.serialization.json.Json
 import java.util.concurrent.TimeUnit
 
 class LlmActivity {
+    var llmResponse by mutableStateOf("")
     val client= HttpClient(OkHttp){
         install(ContentNegotiation){
             json(Json{ignoreUnknownKeys=true;prettyPrint=true})
@@ -41,7 +45,7 @@ class LlmActivity {
                     content = """
                     Return ONLY raw JSON in the output. Do NOT include any thoughts, explanations, markdown (no ```), or comments. Just return valid JSON array.
                     image_url : $img_url
-                    prompt: just simply suggest me top/best 4 furnitures details which will match in this room in $style style. Return output in Json Format.
+                    prompt: just simply suggest me top/best 4 furnitures details which will match in this room in $style style. Return output in Json Format with just required fields (name,description,type,color).
                 """.trimIndent()
                 )
             ),
@@ -59,11 +63,16 @@ class LlmActivity {
         val finalJsonOnly=finalApiResponse.substringAfter("</thought>").trim()
         val list: List<Furniture> = Json.decodeFromString<List<Furniture>>(finalJsonOnly)
         Log.d("Final Json",finalJsonOnly)
-        list.forEach {
-            Log.d(it.name,it.style)
+        llmResponse=finalJsonOnly
+        for (i in 0..3){
+            Log.d("$i","${list.get(i).name} and ${list.get(i).type}")
         }
         //Log.d("final","$finalJsonOnly")
         Log.d("Status ssss",response.status.toString())
 
     }
+    fun llmResponder(): String {
+        return llmResponse
+    }
+
 }

@@ -4,28 +4,17 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
 import com.furniture.app.data.IkeaAPI
-import com.furniture.app.data.LlmActivity
 import com.furniture.app.ui.theme.FurnitureTheme
-import com.furniture.app.ui.theme.screens.CameraScreen
-import com.furniture.app.ui.theme.screens.DesignAssistantScreen
-import com.furniture.app.ui.theme.screens.DesignAssistantScreen2
+import com.furniture.app.ui.theme.screens.NavigationComposable
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.storage.Storage
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,7 +42,22 @@ class MainActivity : ComponentActivity() {
                 //HomeScreen()
                 //CameraScreen(supabase)
                 //Greeting("John")
-                DesignAssistantScreen2(supabase)
+                val navController= rememberNavController()
+                NavigationComposable(LocalContext.current,navController,supabase)
+                //DesignAssistantScreen2(supabase)
+                /*
+                val item= IkeaApiSerialization(
+                    image = "https://www.ikea.com/in/en/images/products/herrakra-armchair-diseroed-dark-yellow__1213667_pe911203_s5.jpg",
+                    name = "test",
+                    url = "https://www.pexels.com/photo/turned-on-black-torchiere-lamp-112811/",
+                    typeName = "type test",
+                    price = Price(
+                        currentPrice = 33
+                    )
+                )
+                FurnitureItemRow(item=item,{})
+
+                 */
             }
         }
     }
@@ -62,6 +66,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     val ob= IkeaAPI()
+    /*
     Row(
         Modifier.fillMaxSize(),
         horizontalArrangement = Arrangement.Center,
@@ -70,13 +75,16 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
             text = "Hello $name!",
             modifier = modifier
         )
+
         Button(onClick = {
             CoroutineScope(Dispatchers.IO).launch {
-                ob.apiCall("blue sofa")
+                //ob.apiCall("blue sofa")
             }
         }
         ) { Text("Button")}
     }
+
+     */
 }
 
 @Preview(showBackground = true)

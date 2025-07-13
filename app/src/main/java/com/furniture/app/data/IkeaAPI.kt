@@ -6,14 +6,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.client.request.headers
 import io.ktor.client.request.parameter
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
-import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
 class IkeaAPI {
@@ -30,20 +28,27 @@ class IkeaAPI {
         }
     }
 
-    suspend fun apiCall(keyword: String){
+    suspend fun apiCall(keyword: String): List<IkeaApiSerialization> {
         var keyString=keyword.replace(" ","%20")
         val response: HttpResponse =client
             .get("https://ikea-api.p.rapidapi.com/keywordSearch"){
                 headers {
                     append("x-rapidapi-host", "ikea-api.p.rapidapi.com")
-                    append("x-rapidapi-key", "f417cd8958mshb0eaf99c377893dp1bfcb2jsn96a512ef0987")
+                    append("x-rapidapi-key", "c05f2cd92amsh7631abe13387bdap1ed263jsn27b83fd62503")
                 }
                 parameter("keyword",keyString)
                 parameter("countryCode","in")
                 parameter("languageCode", "en")
             }
 
-        val jsonString=response.bodyAsText()
+        val jsonString=response
+            .bodyAsText()
+            .trim()
+            .removePrefix("```json")
+            .removePrefix("```")
+            .removePrefix("`")
+            .removeSuffix("```")
+            .trim()
         Log.d("ikea",jsonString)
 
         var list= Json.decodeFromString<List<IkeaApiSerialization>>(jsonString)
@@ -51,5 +56,6 @@ class IkeaAPI {
         list.forEach {
             Log.d(it.name,"${it.price.currentPrice} and ${it.typeName}")
         }
+        return list
     }
 }

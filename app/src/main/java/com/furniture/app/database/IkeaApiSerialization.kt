@@ -10,7 +10,8 @@ data class IkeaApiSerialization(
     val name: String,
     val price: Price,
     val image: String,
-    val typeName: String
+    val typeName: String,
+    val url: String
 )
 
 @Serializable

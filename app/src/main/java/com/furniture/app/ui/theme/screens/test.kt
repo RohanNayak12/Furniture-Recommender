@@ -53,11 +53,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.furniture.app.R
 import com.furniture.app.data.LlmActivity
 import com.furniture.app.data.SupabaseActivity
+import com.furniture.app.database.HelperClass1
+import com.furniture.app.database.Routes
 import io.github.jan.supabase.SupabaseClient
 import kotlinx.coroutines.launch
+import java.net.URLEncoder
 
 private val DarkBackground = Color(0xFF111418)
 private val SecondaryBackground = Color(0xFF1B2127)
@@ -68,7 +72,12 @@ private val TextWhite = Color.White
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DesignAssistantScreen2(supabase: SupabaseClient) {
+fun DesignAssistantScreen2(
+    supabase: SupabaseClient,
+    navController: NavHostController,
+    helperClass1: HelperClass1
+) {
+    //val helperClass1= HelperClass1()
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
@@ -121,8 +130,15 @@ fun DesignAssistantScreen2(supabase: SupabaseClient) {
     }
 
     if (showDesignPreview && llmResponse.isNotEmpty()) {
-        DesignPreviewScreen(json = llmResponse)
-        return
+        helperClass1.updateJson(llmResponse)
+        helperClass1.updateUrl(imageUrl!!)
+        val routes= Routes()
+        navController.navigate(
+            "${routes.furnitureRecommendation}/{Json}/{Url}"
+                .replace(oldValue = "{Json}", newValue = URLEncoder.encode(llmResponse,"UTF-8"))
+                .replace(oldValue = "{Url}", newValue = URLEncoder.encode(imageUrl!!,"UTF-8"))
+        )
+        showDesignPreview=false
     }
 
     Column(
@@ -366,8 +382,15 @@ fun DesignAssistantScreen2(supabase: SupabaseClient) {
                             coroutineScope.launch {
                                 try {
                                     val response = llmActivity.furnitureRecommendation(imageUrl!!, choice)
-                                    Log.d("llm resp", response.toString())
-                                    llmResponse = response.toString()
+                                    llmResponse = llmActivity.llmResponder()
+                                    llmResponse=llmResponse
+                                        .trim()
+                                        .removePrefix("```json")
+                                        .removePrefix("```")
+                                        .removePrefix("`")
+                                        .removeSuffix("```")
+                                        .trim()
+                                    Log.d("llm resp", llmResponse)
                                     isProcessingLLM = false
                                     if (llmResponse.isNotEmpty()) {
                                         showDesignPreview = true

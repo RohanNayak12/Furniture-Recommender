@@ -1,6 +1,8 @@
 package com.furniture.app.ui.theme.screens
 
 // Required imports:
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -29,17 +31,34 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import coil3.compose.AsyncImage
-import com.furniture.app.data.FurnitureItem
+import com.furniture.app.data.FurnitureItemFromLLM
+import com.furniture.app.data.IkeaAPI
+import com.furniture.app.database.HelperClass1
+import com.furniture.app.database.IkeaApiSerialization
+import com.furniture.app.database.Routes
+import io.github.jan.supabase.SupabaseClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 
@@ -47,15 +66,58 @@ import kotlinx.serialization.json.Json
 fun DesignPreviewScreen(
     onBackClick: () -> Unit = {},
     onViewItemClick: (String) -> Unit = {},
-    json: String
-) {
-    val furnitureItems: List<FurnitureItem> = emptyList()
+    json: String,
+    imgUrl: String,
+    supabase: SupabaseClient,
+    navcontroller: NavHostController,
+    helperClass1: HelperClass1,
+    ) {
+
+    val ikeaAPI= IkeaAPI()
+    var eee by remember { mutableStateOf(false) }
+    Log.d("FurnitureRecommendScreen",json)
+    var furnitureItems by remember { mutableStateOf<List<FurnitureItemFromLLM>>(emptyList()) }
     try {
-        val furnitureItems: List<FurnitureItem> = Json.decodeFromString<List<FurnitureItem>>(json)
+        furnitureItems = Json.decodeFromString<List<FurnitureItemFromLLM>>(json)
+        Log.d("tetetete",furnitureItems[0].name.toString())
     }
     catch (e: Exception){
+        eee=true
         Log.d("EEE","$e")
     }
+    if(eee){
+        eee=false
+        val routes=Routes()
+        navcontroller.navigate(routes.designAssistant)
+    }
+    Log.d("from furniture recommend screen","${furnitureItems.get(0).name}")
+
+    val coroutineScope= rememberCoroutineScope()
+    var finalList:List<IkeaApiSerialization> by remember { mutableStateOf(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+    LaunchedEffect(furnitureItems) {
+        if(furnitureItems.isNotEmpty()){
+            isLoading=true
+            val results = mutableListOf<IkeaApiSerialization>()
+
+            for (item in furnitureItems) {
+                try {
+                    val res = ikeaAPI.apiCall(keyword = item.name!!)
+                    if (res.isNotEmpty()) {
+                        results.add(res[0])
+                        Log.d("NNNN", res[0].name)
+                    }
+                } catch (e: Exception) {
+                    Log.d("AAAA", "$e")
+                }
+            }
+            finalList = results
+            isLoading = false
+            Log.d("GGG", "Final list size: ${finalList.size}")
+        }
+    }
+    val n=finalList.size
+    Log.d("GGG","$n")
 
     Column(
         modifier = Modifier
@@ -104,7 +166,7 @@ fun DesignPreviewScreen(
             colors = CardDefaults.cardColors(containerColor = Color.Transparent)
         ) {
             AsyncImage(
-                model = "https://lh3.googleusercontent.com/aida-public/AB6AXuCas5pKl4Fz4yKxtnW1XaJhjUnpPWH__5SuftwgBsrTB8cNIvf4sm0OAwGmrZ3iXQo0jyhkuqkrMfI4sBElNTTE-gP6QRVL7WMgNPyYAqxCKtV7PnRFJnz-s7K8e6SIF8b_8YxIyMAZl5SaxyCh_mThzVEfSgZOCVNxsygZ9132yPZdY1jHIPrTlLFCOzHVAsY2D-V5OBxHMD15rze3gsEuq4hNEzcFtLZ8LyIJ6eSs5hTkMOt-I9UDYILfHaT7du7RwGGeqEKK7Dk",
+                model = imgUrl,
                 contentDescription = "Design Preview",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop
@@ -125,10 +187,10 @@ fun DesignPreviewScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(furnitureItems) { item ->
+            items(finalList) { item ->
                 FurnitureItemRow(
                     item = item,
-                    onViewClick = { onViewItemClick(item.name!!) }
+                    onViewClick = { onViewItemClick(item.name) }
                 )
             }
         }
@@ -140,9 +202,11 @@ fun DesignPreviewScreen(
 
 @Composable
 fun FurnitureItemRow(
-    item: FurnitureItem,
+    item: IkeaApiSerialization,
     onViewClick: () -> Unit
 ) {
+    val context=LocalContext.current
+    Log.d("JJJJ",item.name)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,15 +219,15 @@ fun FurnitureItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Item Image
-            /*
+
             AsyncImage(
-                model = item.imageUrl,
-                contentDescription = item.title,
+                model = item.image,
+                contentDescription = item.name,
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(70.dp)
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop
-            ) */
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -172,7 +236,7 @@ fun FurnitureItemRow(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = item.name!!,
+                    text = item.name,
                     color = Color.White,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
@@ -180,7 +244,16 @@ fun FurnitureItemRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = item.description!!,
+                    text = item.typeName,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                val s= item.price.currentPrice.toString()
+                Text(
+                    text = s,
                     color = Color(0xFF9CAABA),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Normal,
@@ -192,7 +265,14 @@ fun FurnitureItemRow(
 
         // View Button
         Button(
-            onClick = onViewClick,
+            onClick = {
+                Log.d("OOOO","${item.url}")
+                val uriIntent= Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(item.url)
+                )
+                context.startActivity(uriIntent)
+            },
             modifier = Modifier.height(32.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color(0xFF283039)
@@ -210,6 +290,10 @@ fun FurnitureItemRow(
     }
 }
 
+@Preview
+@Composable
+fun FurnitureItemRowPreview(){}
+
 
 
 // Usage example:
@@ -226,3 +310,20 @@ fun DesignPreviewScreenPreview() {
 }
 
  */
+
+fun ikeaNetworkCall(coroutineScope: CoroutineScope,ikeaAPI: IkeaAPI,keyword: String):IkeaApiSerialization?{
+    var list:IkeaApiSerialization? by mutableStateOf(null)
+    coroutineScope.launch {
+        try {
+            var res:List<IkeaApiSerialization> =ikeaAPI.apiCall(keyword = keyword)
+            list=res.get(0)
+            Log.d("NNNN",list!!.name)
+        }
+        catch (e: Exception){
+            Log.d("AAAA","$e")
+        }
+    }
+    //list.
+    //Log.d("NNNN",list!!.name)
+    return list
+}
